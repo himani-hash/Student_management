@@ -2,16 +2,22 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
+from flask_migrate import Migrate
+
+
 
 
 load_dotenv()
 
 app = Flask(__name__)
 
+
+
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Student(db.Model):
     __tablename__ = "Students"
@@ -30,15 +36,40 @@ class Student(db.Model):
             "name" : self.name,
             "course" : self.course,
             "math" : self.maths,
-            "Eng" : self.english,
-            "Hindi" : self.hindi,
-            "Science" : self.science
+            "eng" : self.english,
+            "hindi" : self.hindi,
+            "science" : self.science
         }
+    
+class Teacher(db.Model):
+    __tablename__ = "Teacher"
 
-with app.app_context():
-    db.create_all()
+    id = db.Column(db.Integer, primary_key = True )
+    name = db.Column(db.String(100), nullable = False)
+    email = db.Column(db.String(100), unique=True)
 
+    subjects = db.relationship("Subject", backref="teacher")
 
+    def to_dict(self): 
+        return {
+        "id" : self.id,
+        "name" : self.name,
+        "email" : self.email
+        }
+    
+class Subject(db.Model):
+    __tablename__ = "Subject"
+
+    id = db.Column(db.Integer , primary_key = True)
+    S_name = db.Column(db.String(100), nullable = False)
+    teacher_id = db.Column(db.Integer,db.ForeignKey("Teacher.id"), nullable = False)
+
+    def to_dict(self):
+        return{
+            "id": self.id,
+            "sub_name": self.S_name,
+            "teacher_id": self.teacher_id
+        }
 
 @app.route("/student", methods = ["GET"])
 def student():
@@ -57,9 +88,9 @@ def add_student():
        name = data.get("name"),
        course = data.get("course"),
        maths = data.get("math"),
-       english = data.get("Eng"),
-       hindi = data.get("Hindi"),   
-       science = data.get("Science")
+       english = data.get("eng"),
+       hindi = data.get("hindi"),   
+       science = data.get("science")
     )
 
     db.session.add(student)
@@ -123,13 +154,43 @@ def marks(id):
         "hindi": student.hindi,
         "science": student.science,
     })
+@app.route("/add-teacher", methods = ["POST"])
+def add_teacher():
+    data = request.get_json()
 
-@app.route("/test")
+    teacher = Teacher(
+        name = data.get("name"),
+        email = data.get("email")
+    )
+
+    db.session.add(teacher)
+    db.session.commit()
+
+    return jsonify({
+        "meassage": "teacher added sucessfully",
+        "teacher": teacher.to_dict()
+    })
+
+@app.route("/add-subject", methods = ["POST"])
+def add_subject():
+    data = request.get_json()
+
+    subject = Subject(
+        S_name = data.get("sub_name"),
+        teacher_id = data.get("teacher_id")
+    )
+
+    db.session.add(subject)
+    db.session.commit()
+
+    return jsonify({
+        "message": "subject added succesfully"
+    })
+
+
+@app.route("/test", methods = ["GET"])
 def test():
-    print("TEST ROUTE HIT 🔥")
-    return "OK"
-
-print(app.url_map)
+    return "api is ok"
 
 
 if __name__=="__main__":
