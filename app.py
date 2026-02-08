@@ -4,14 +4,9 @@ import os
 from dotenv import load_dotenv
 from flask_migrate import Migrate
 
-
-
-
 load_dotenv()
 
 app = Flask(__name__)
-
-
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']= False
@@ -186,6 +181,27 @@ def add_subject():
     return jsonify({
         "message": "subject added succesfully"
     })
+
+@app.route("/teacher/<int:id>", methods = ["GET"])
+def get_teacher(id):
+    data = Teacher.query.get(id)
+
+    if not data:
+        return{"error":"Teacher not found"},404
+    
+    return jsonify({
+        "id": data.id,
+        "name": data.name,
+        "email" : data.email,
+        "subjects": [
+            {
+                "id": subject.id,
+                "name": subject.S_name
+            }
+    for subject in data.subjects
+]
+    })
+    
 
 
 @app.route("/test", methods = ["GET"])
