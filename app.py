@@ -15,7 +15,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 class Student(db.Model):
-    __tablename__ = "Students"
+    __tablename__ = "students"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable = False)
@@ -26,7 +26,7 @@ class Student(db.Model):
     science = db.Column(db.Integer, nullable = False)
 
     def to_dict(self):
-        return{
+        return {
             "id": self.id,
             "name" : self.name,
             "course" : self.course,
@@ -37,7 +37,7 @@ class Student(db.Model):
         }
     
 class Teacher(db.Model):
-    __tablename__ = "Teacher"
+    __tablename__ = "teachers"
 
     id = db.Column(db.Integer, primary_key = True )
     name = db.Column(db.String(100), nullable = False)
@@ -53,20 +53,20 @@ class Teacher(db.Model):
         }
     
 class Subject(db.Model):
-    __tablename__ = "Subject"
+    __tablename__ = "subjects"
 
     id = db.Column(db.Integer , primary_key = True)
     S_name = db.Column(db.String(100), nullable = False)
-    teacher_id = db.Column(db.Integer,db.ForeignKey("Teacher.id"), nullable = False)
+    teacher_id = db.Column(db.Integer,db.ForeignKey("teachers.id"), nullable = False)
 
     def to_dict(self):
-        return{
+        return {
             "id": self.id,
             "sub_name": self.S_name,
             "teacher_id": self.teacher_id
         }
 
-@app.route("/student", methods = ["GET"])
+@app.route("/api/students", methods = ["GET"])
 def student():
     students = Student.query.all()
 
@@ -75,69 +75,84 @@ def student():
         "students" : [s.to_dict() for s in students]
     })
 
-@app.route("/add-student", methods = ["POST"])
+@app.route("/api/students", methods = ["POST"])
 def add_student():
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    student = Student(
-       name = data.get("name"),
-       course = data.get("course"),
-       maths = data.get("math"),
-       english = data.get("eng"),
-       hindi = data.get("hindi"),   
-       science = data.get("science")
-    )
+        if not data:
+            return jsonify({"error":"Invalid json data"}),400
 
-    db.session.add(student)
-    db.session.commit()
+        student = Student(
+            name = data.get("name"),
+            course = data.get("course"),
+            maths = data.get("math"),
+            english = data.get("eng"),
+            hindi = data.get("hindi"),   
+            science = data.get("science")
+            )
 
-    return jsonify({
-        "message" : "Student added sucessfully"
-    })
+        db.session.add(student)
+        db.session.commit()
 
-@app.route("/update-student/<int:id>", methods = ["POST"])
+        return jsonify({
+            "message" : "Student added successfully"})
+    except:
+        return jsonify({"error":"Something went wrong"}),500
+
+
+@app.route("/api/students/<int:id>", methods = ["PUT"])
 def update_student(id):
-    print(request.get_json())
-    data = request.get_json()
-    print(data)
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error":"Invalid json data"}),400
 
-    student = Student.query.get(id)
+        student = db.session.get(Student, id)
 
-    if not student:
-        return jsonify({"error":"The student is not found"}),404
+        if not student:
+            return jsonify({"error":"The student is not found"}),404
 
-    student.name = data.get("name", student.name)
-    student.course = data.get("course", student.course)
+        student.name = data.get("name", student.name)
+        student.course = data.get("course", student.course)
 
-    db.session.commit()
+        db.session.commit()
 
-    return({
-        "message":"Student updated succesfully",
-        "student": student.to_dict()
-        })
+        return jsonify ({
+            "message":"Student updated sucesfully",
+            "student": student.to_dict()
+            })
+    except:
+        return jsonify({"error":"Something went wrong"}),500
+    
 
-@app.route("/delete-student/<int:id>", methods = ["DELETE"])
+@app.route("/api/students/<int:id>", methods = ["DELETE"])
 def delete_student(id):
     
-    student = Student.query.get(id)
+    try:
+        student = db.session.get(Student, id)
 
-    if not student:
-        return{"error":"Student not found"},404
+        if not student:
+            return jsonify({"error":"Student not found"}),404
     
-    db.session.delete(student)
-    db.session.commit()
+        db.session.delete(student)
+        db.session.commit()
 
-    return jsonify({
-        "message":"student dleetd successfully",
-        "student":student.to_dict()
-    })
+        return jsonify({
+            "message":"student deleted successfully",
+            "student":student.to_dict()
+            })
+    
+    except:
+        return jsonify({"error":"something went wrong"}),500
+    
 
-@app.route("/student-marks/<int:id>", methods= ["GET"])
+@app.route("/api/student-marks/<int:id>", methods= ["GET"])
 def marks(id):
 
-    student = Student.query.get(id)
+    student = db.session.get(Student, id)
     if not student:
-        return {"error":"Student not found"},404
+        return jsonify({"error":"Student not found"}),404
 
 
     return jsonify({
@@ -149,45 +164,62 @@ def marks(id):
         "hindi": student.hindi,
         "science": student.science,
     })
-@app.route("/add-teacher", methods = ["POST"])
+
+
+@app.route("/api/teachers", methods = ["POST"])
 def add_teacher():
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    teacher = Teacher(
-        name = data.get("name"),
-        email = data.get("email")
-    )
+        if not data:
+            return jsonify({"error":"Invalid json data"}),400
 
-    db.session.add(teacher)
-    db.session.commit()
+        teacher = Teacher(
+            name = data.get("name"),
+            email = data.get("email")
+        )
 
-    return jsonify({
-        "meassage": "teacher added sucessfully",
-        "teacher": teacher.to_dict()
-    })
+        db.session.add(teacher)
+        db.session.commit()
 
-@app.route("/add-subject", methods = ["POST"])
+        return jsonify({
+            "meassage": "teacher added successfully",
+            "teacher": teacher.to_dict()
+            })
+    
+    except:
+        return jsonify({"error":"something went wrong"}),500
+
+@app.route("/api/subjects", methods = ["POST"])
 def add_subject():
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    subject = Subject(
-        S_name = data.get("sub_name"),
-        teacher_id = data.get("teacher_id")
-    )
+        if not data:
+            return jsonify({"error":"Invalid json data"}),400
 
-    db.session.add(subject)
-    db.session.commit()
+        subject = Subject(
+            S_name = data.get("sub_name"),
+            teacher_id = data.get("teacher_id")
+        )
 
-    return jsonify({
-        "message": "subject added succesfully"
-    })
+        db.session.add(subject)
+        db.session.commit()
 
-@app.route("/teacher/<int:id>", methods = ["GET"])
+        return jsonify({
+            "message": "subject added successfully"
+        })
+    
+    except:
+        return jsonify({"error":"something went wrong"}),500
+
+
+@app.route("/api/teacher/<int:id>", methods = ["GET"])
 def get_teacher(id):
-    data = Teacher.query.get(id)
+    data = db.session.get(Teacher, id)
 
     if not data:
-        return{"error":"Teacher not found"},404
+        return jsonify({"error":"Teacher not found"}),404
     
     return jsonify({
         "id": data.id,
@@ -202,8 +234,6 @@ def get_teacher(id):
 ]
     })
     
-
-
 @app.route("/test", methods = ["GET"])
 def test():
     return "api is ok"
