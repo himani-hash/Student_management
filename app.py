@@ -25,6 +25,8 @@ class Student(db.Model):
     hindi = db.Column(db.Integer, nullable = False)
     science = db.Column(db.Integer, nullable = False)
 
+    profile = db.relationship("Profile", backref="student", uselist= False)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -35,6 +37,20 @@ class Student(db.Model):
             "hindi" : self.hindi,
             "science" : self.science
         }
+    
+class Profile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(10), nullable = False)
+    address = db.Column(db.String(100), nullable= False)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
+
+    def to_dict(self):
+        return{
+            "id" : self.id,
+            "phone" : self.phone,
+            "address" : self.address,
+            "student_id" : self.student_id
+         }
     
 class Teacher(db.Model):
     __tablename__ = "teachers"
@@ -231,8 +247,52 @@ def get_teacher(id):
                 "name": subject.S_name
             }
     for subject in data.subjects
-]
+        ]
     })
+
+@app.route("/api/profile", methods = ["POST"])
+def add_profile():
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error":"Invalid json data"}),400
+        
+        profile = Profile(
+            phone = data.get("phone"),
+            address = data.get("address"),
+            student_id = data.get("student_id")
+        )
+
+        db.session.add(profile)
+        db.session.commit()
+
+        return jsonify({"message":"Profile aaded successfully"})
+    
+    except:
+        return jsonify({"error":"something went wrong"}),500
+    
+@app.route("/api/student/<int:id>/profile/" , methods = ["GET"])
+def get_profile(id):
+    try:
+        data = db.session.get(Student, id)
+
+        if not data:
+            return jsonify({"error":"student not found not found"}),404
+        
+        return jsonify({
+            "name": data.name,
+            "id" : data.id,
+            "profile" : 
+                {
+                    "phone" : data.profile.phone,
+                    "address" : data.profile.address
+                }
+        })
+    except:
+        return jsonify({
+            "error":"something went wrong"
+        }),500
     
 @app.route("/test", methods = ["GET"])
 def test():
