@@ -39,6 +39,8 @@ class Student(db.Model):
         }
     
 class Profile(db.Model):
+    __tablename__ = "profile"
+
     id = db.Column(db.Integer, primary_key=True)
     phone = db.Column(db.String(10), nullable = False)
     address = db.Column(db.String(100), nullable= False)
@@ -236,6 +238,8 @@ def get_teacher(id):
 
     if not data:
         return jsonify({"error":"Teacher not found"}),404
+
+    
     
     return jsonify({
         "id": data.id,
@@ -250,19 +254,25 @@ def get_teacher(id):
         ]
     })
 
-@app.route("/api/profile", methods = ["POST"])
+@app.route("/api/profiles", methods = ["POST"])
 def add_profile():
     try:
         data = request.get_json()
 
+        student = db.session.get(student, data)
+
         if not data:
             return jsonify({"error":"Invalid json data"}),400
+        
+        if student.profile:
+            return jsonify({"error": "Profile already exists for this student"}), 400
         
         profile = Profile(
             phone = data.get("phone"),
             address = data.get("address"),
             student_id = data.get("student_id")
         )
+
 
         db.session.add(profile)
         db.session.commit()
@@ -272,13 +282,17 @@ def add_profile():
     except:
         return jsonify({"error":"something went wrong"}),500
     
-@app.route("/api/student/<int:id>/profile/" , methods = ["GET"])
+@app.route("/api/student/<int:id>/profile" , methods = ["GET"])
 def get_profile(id):
     try:
         data = db.session.get(Student, id)
 
         if not data:
             return jsonify({"error":"student not found not found"}),404
+        
+        if not data.profile :
+            return jsonify({"error":"profile not found"},404)
+
         
         return jsonify({
             "name": data.name,
