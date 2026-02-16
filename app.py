@@ -19,11 +19,13 @@ class Student(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable = False)
-    course = db.Column(db.String(200), nullable = False)
     maths = db.Column(db.Integer, nullable = False)
     english = db.Column(db.Integer, nullable = False)
     hindi = db.Column(db.Integer, nullable = False)
     science = db.Column(db.Integer, nullable = False)
+    course_id = db.Column(db.Integer, db.ForeignKey("courses.id"))
+    course = db.relationship("Course", backref="students")
+
 
     profile = db.relationship("Profile", backref="student", uselist= False)
 
@@ -31,12 +33,24 @@ class Student(db.Model):
         return {
             "id": self.id,
             "name" : self.name,
-            "course" : self.course,
             "math" : self.maths,
             "eng" : self.english,
             "hindi" : self.hindi,
             "science" : self.science
         }
+    
+class Course(db.Model):
+    __tablename__ = "courses"
+
+    id = db.Column(db.Integer, primary_key = True)
+    course  = db.Column(db.String(100), nullable = False)
+
+    def to_dict(self):
+        return{
+            "id":self.id,
+            "course":self.course
+        }
+
     
 class Profile(db.Model):
     __tablename__ = "profile"
@@ -93,6 +107,29 @@ def student():
         "students" : [s.to_dict() for s in students]
     })
 
+@app.route("/api/courses", methods = ["POST"])
+def add_course():
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error":"Invalid json data"}),400
+        
+        course = Course(
+            course = data.get("course")
+        )
+
+        db.session.add(course)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Course added successfully",
+            "course": course.to_dict()
+            }), 201
+
+    except:
+        return jsonify({"error":"something went wrong"})
+
 @app.route("/api/students", methods = ["POST"])
 def add_student():
     try:
@@ -101,14 +138,16 @@ def add_student():
         if not data:
             return jsonify({"error":"Invalid json data"}),400
 
+            
         student = Student(
-            name = data.get("name"),
-            course = data.get("course"),
-            maths = data.get("math"),
-            english = data.get("eng"),
-            hindi = data.get("hindi"),   
-            science = data.get("science")
+            name=data.get("name"),
+            maths=data.get("math"),
+            english=data.get("eng"),
+            hindi=data.get("hindi"),
+            science=data.get("science"),
+            course_id=data.get("course_id")
             )
+
 
         db.session.add(student)
         db.session.commit()
@@ -132,7 +171,7 @@ def update_student(id):
             return jsonify({"error":"The student is not found"}),404
 
         student.name = data.get("name", student.name)
-        student.course = data.get("course", student.course)
+        student.course_id = data.get("course_id", student.course_id)
 
         db.session.commit()
 
@@ -176,7 +215,6 @@ def marks(id):
     return jsonify({
         "id": student.id,
         "name": student.name,
-        "course": student.course,
         "Maths": student.maths,
         "english": student.english,
         "hindi": student.hindi,
@@ -259,7 +297,8 @@ def add_profile():
     try:
         data = request.get_json()
 
-        student = db.session.get(student, data)
+        student = db.session.get(Student, data.get("student_id"))
+
 
         if not data:
             return jsonify({"error":"Invalid json data"}),400
