@@ -1,7 +1,6 @@
 from flask import Flask
 import os
 from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from routes import api
 from models import db

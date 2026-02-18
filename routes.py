@@ -44,16 +44,15 @@ def enroll_student():
             return jsonify({"error": "Invalid JSON data"}), 400
 
         student_id = data.get("student_id")
-        course_id = data.get("course_id")
 
-        if not student_id or not course_id:
+        if not student_id:
             return jsonify({"error": "student_id and course_id required"}), 400
 
         student = db.session.get(Student, student_id)
         if not student:
             return jsonify({"error": "Student not found"}), 404
 
-        course = db.session.get(Course, course_id)
+        course = db.session.get(Course, id)
         if not course:
             return jsonify({"error": "Course not found"}), 404
 
@@ -107,7 +106,7 @@ def get_student_courses(id):
         for course in student.courses:
             courses_list.append({
                 "id": course.id,
-                "name": course.name
+                "name": course.course
             })
 
         return jsonify({
@@ -186,12 +185,11 @@ def update_student(id):
             return jsonify({"error":"The student is not found"}),404
 
         student.name = data.get("name", student.name)
-        student.course_id = data.get("course_id", student.course_id)
 
         db.session.commit()
 
         return jsonify ({
-            "message":"Student updated sucesfully",
+            "message":"Student updated succesfully",
             "student": student.to_dict()
             })
     except:
@@ -254,7 +252,7 @@ def add_teacher():
         db.session.commit()
 
         return jsonify({
-            "meassage": "teacher added successfully",
+            "message": "teacher added successfully",
             "teacher": teacher.to_dict()
             })
     
@@ -331,7 +329,7 @@ def add_profile():
         db.session.add(profile)
         db.session.commit()
 
-        return jsonify({"message":"Profile aaded successfully"})
+        return jsonify({"message":"Profile added successfully"})
     
     except:
         return jsonify({"error":"something went wrong"}),500
@@ -342,10 +340,10 @@ def get_profile(id):
         data = db.session.get(Student, id)
 
         if not data:
-            return jsonify({"error":"student not found not found"}),404
+            return jsonify({"error":"student not found"}),404
         
         if not data.profile :
-            return jsonify({"error":"profile not found"},404)
+            return jsonify({"error":"profile not found"}),404
 
         
         return jsonify({
