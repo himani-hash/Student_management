@@ -1,4 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, timezone
+import bcrypt
 
 db = SQLAlchemy()
 
@@ -92,3 +94,22 @@ class Subject(db.Model):
             "sub_name": self.S_name,
             "teacher_id": self.teacher_id
         }
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key = True)
+    email = db.Column(db.String(100), unique = True, nullable = False)
+    password_hash = db.Column(db.String(255), nullable = False)
+    name = db.Column(db.String(100), nullable = False)
+    is_verified = db.Column(db.Boolean, default = False)
+    verification_token = db.Column(db.String(255), nullable = True)
+    reset_token = db.Column(db.String(255), nullable = True)
+    reset_token_expiry = db.Column(db.DateTime, nullable = True)
+    created_at = db.Column(db.DateTime, default = lambda:datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default = lambda:datetime.now(timezone.utc), onupdate=lambda:datetime.now(timezone.utc))
+
+
+    # def set_password(self, password):
+    #     hashed = bcrypt.hashpw
+
